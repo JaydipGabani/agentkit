@@ -1,0 +1,17 @@
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Local user state — not for redistribution
+session-logs/
+*.local
+
+# Anything mining-related stays out of the public repo
+mining-corpus/
+*-mining/
+raw_memories.md

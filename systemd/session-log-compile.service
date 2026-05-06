@@ -1,0 +1,14 @@
+[Unit]
+Description=Compile daily session log summary (last 24h)
+Documentation=file:///%h/.local/bin/session-log-compile.sh
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/session-log-compile.sh
+Nice=10
+# Read-only hardening; only session-logs dir is writable
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/session-logs
+NoNewPrivileges=true
+PrivateTmp=true

@@ -1,0 +1,28 @@
+agentkit
+Copyright 2026 Jaydip Gabani
+
+This product includes software developed by Jaydip Gabani and contributors.
+
+----
+
+Provenance of distilled patterns
+
+The PR-review and PR-author skills under `skills/` and the corresponding
+notes under `memories/` (notably `pr-review-techniques.md` and
+`sig-auth-rigor.md`) are abstracted patterns extracted from the
+publicly-visible PR-review and code-comment history of senior open-source
+maintainers in the Kubernetes / OPA / cert-manager ecosystems. The raw
+mining corpora — which include personally-attributable phrasing and
+timing information — are NOT redistributed in this repository. Only the
+abstracted ruleset is published.
+
+If you fork or extend these skills, please preserve this provenance
+notice and the abstraction-only redistribution practice.
+
+----
+
+Third-party content
+
+No third-party software is bundled with this repository. The shell
+scripts (`scripts/wt`, `scripts/session-log-compile.sh`) depend at
+runtime on `git`, `jq`, `find`, and `bash`; these are not redistributed.

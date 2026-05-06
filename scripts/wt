@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Jaydip Gabani
+#
+# wt — git worktree helper.
+#
+# Goal: keep your canonical clone clean (e.g. ~/code/<org>/<repo>), and
+# isolate every parallel task (agent, branch, PR) into its own worktree
+# under ~/worktrees/<repo>/<branch>. Two agents working the same repo
+# never write to the same working tree.
+#
+# Usage:
+#   wt new <branch> [base]      Create worktree ~/worktrees/<repo>/<branch>
+#                               from <base> (default: origin/<default-branch>).
+#                               If <branch> exists locally or remotely, it is
+#                               checked out instead of created.
+#   wt cd <branch>              Print the worktree path (use: cd "$(wt cd b)").
+#   wt list                     List worktrees for the current repo.
+#   wt rm <branch>              Remove the worktree for <branch>. Refuses if
+#                               the worktree has dirty/unpushed state unless
+#                               --force is passed.
+#   wt prune                    git worktree prune (drop stale entries).
+#   wt status                   Show short status across every worktree of
+#                               the current repo.
+#   wt root                     Print the canonical repo path (the one with
+#                               .git as a directory, not a file).
+#
+# Conventions:
+#   - Run from anywhere inside a clone of the target repo, OR pass --repo.
+#   - Branch names with '/' are preserved on disk (e.g. ~/worktrees/<repo>/feat/foo).
+#   - The script never touches the canonical working tree's HEAD.
+#
+# Exit codes: 0 ok, 1 user error, 2 git error.
+
+set -euo pipefail
+
+WORKTREE_ROOT="${WORKTREE_ROOT:-$HOME/worktrees}"
+
+die() { printf 'wt: %s\n' "$*" >&2; exit "${2:-1}"; }
+
+# Resolve the canonical repo (the one with a real .git dir, not a worktree
+# whose .git is a file pointing into <canonical>/.git/worktrees/...).
+canonical_root() {
+  local cdup
+  cdup="$(git rev-parse --show-toplevel 2>/dev/null)" || die "not in a git repo"
+  # If .git is a file, this is itself a worktree — follow gitdir.
+  if [[ -f "$cdup/.git" ]]; then
+    local gitdir
+    gitdir="$(git rev-parse --git-common-dir)"
+    # git-common-dir gives the shared .git dir; its parent is the canonical worktree.
+    cdup="$(cd "$gitdir/.." && pwd)"
+  fi
+  printf '%s\n' "$cdup"
+}
+
+repo_name() { basename "$(canonical_root)"; }
+
+worktree_dir_for() {
+  local branch="$1"
+  printf '%s/%s/%s\n' "$WORKTREE_ROOT" "$(repo_name)" "$branch"
+}
+
+default_branch() {
+  local root="$1"
+  # Prefer origin/HEAD if set, otherwise fall back to main/master detection.
+  local ref
+  ref="$(git -C "$root" symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null || true)"
+  if [[ -n "$ref" ]]; then
+    printf 'origin/%s\n' "${ref##*/}"
+    return
+  fi
+  for b in main master; do
+    if git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$b"; then
+      printf 'origin/%s\n' "$b"; return
+    fi
+  done
+  die "could not determine default branch for $root" 2
+}
+
+cmd_new() {
+  local branch="${1:-}"; shift || true
+  local base="${1:-}"
+  [[ -n "$branch" ]] || die "usage: wt new <branch> [base]"
+
+  local root; root="$(canonical_root)"
+  local target; target="$(worktree_dir_for "$branch")"
+
+  if [[ -d "$target" ]]; then
+    printf '%s\n' "$target"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$target")"
+
+  # Case 1: branch already exists locally.
+  if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
+    git -C "$root" worktree add "$target" "$branch" >&2
+    printf '%s\n' "$target"
+    return 0
+  fi
+
+  # Case 2: branch exists on origin.
+  if git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+    git -C "$root" worktree add --track -b "$branch" "$target" "origin/$branch" >&2
+    printf '%s\n' "$target"
+    return 0
+  fi
+
+  # Case 3: brand-new branch from <base> (or default branch).
+  [[ -n "$base" ]] || base="$(default_branch "$root")"
+  git -C "$root" worktree add -b "$branch" "$target" "$base" >&2
+  printf '%s\n' "$target"
+}
+
+cmd_cd() {
+  local branch="${1:-}"
+  [[ -n "$branch" ]] || die "usage: wt cd <branch>"
+  local target; target="$(worktree_dir_for "$branch")"
+  [[ -d "$target" ]] || die "no worktree at $target (try: wt new $branch)"
+  printf '%s\n' "$target"
+}
+
+cmd_list() {
+  local root; root="$(canonical_root)"
+  git -C "$root" worktree list
+}
+
+cmd_rm() {
+  local force=0
+  if [[ "${1:-}" == "--force" ]]; then force=1; shift; fi
+  local branch="${1:-}"
+  [[ -n "$branch" ]] || die "usage: wt rm [--force] <branch>"
+  local root; root="$(canonical_root)"
+  local target; target="$(worktree_dir_for "$branch")"
+  [[ -d "$target" ]] || die "no worktree at $target"
+
+  if (( force == 0 )); then
+    # Refuse on dirty index, untracked files, or unpushed commits.
+    if [[ -n "$(git -C "$target" status --porcelain)" ]]; then
+      die "$target has uncommitted changes; pass --force to discard"
+    fi
+    if git -C "$target" rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+      local ahead
+      ahead="$(git -C "$target" rev-list --count '@{u}'..HEAD 2>/dev/null || echo 0)"
+      if [[ "$ahead" != "0" ]]; then
+        die "$target has $ahead unpushed commit(s); push or pass --force"
+      fi
+    else
+      # No upstream — refuse unless --force.
+      die "$target has no upstream; push or pass --force"
+    fi
+  fi
+
+  git -C "$root" worktree remove ${force:+--force} "$target"
+  # Empty repo dir under WORKTREE_ROOT is fine to leave.
+}
+
+cmd_prune() {
+  local root; root="$(canonical_root)"
+  git -C "$root" worktree prune -v
+}
+
+cmd_status() {
+  local root; root="$(canonical_root)"
+  git -C "$root" worktree list --porcelain | awk '/^worktree / {print $2}' | while read -r p; do
+    printf '\n=== %s ===\n' "$p"
+    printf 'branch : %s\n' "$(git -C "$p" branch --show-current 2>/dev/null || echo '(detached)')"
+    local short; short="$(git -C "$p" status --short)"
+    if [[ -n "$short" ]]; then
+      printf 'dirty  :\n%s\n' "$short"
+    else
+      printf 'dirty  : clean\n'
+    fi
+    if git -C "$p" rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+      local ahead behind
+      ahead="$(git -C "$p" rev-list --count '@{u}'..HEAD 2>/dev/null || echo 0)"
+      behind="$(git -C "$p" rev-list --count HEAD..'@{u}' 2>/dev/null || echo 0)"
+      printf 'remote : ahead %s behind %s\n' "$ahead" "$behind"
+    else
+      printf 'remote : (no upstream)\n'
+    fi
+  done
+}
+
+cmd_root() { canonical_root; }
+
+main() {
+  local cmd="${1:-}"; shift || true
+  case "$cmd" in
+    new)    cmd_new "$@" ;;
+    cd)     cmd_cd "$@" ;;
+    list|ls) cmd_list "$@" ;;
+    rm|remove) cmd_rm "$@" ;;
+    prune)  cmd_prune "$@" ;;
+    status) cmd_status "$@" ;;
+    root)   cmd_root "$@" ;;
+    -h|--help|help|"") sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) die "unknown subcommand: $cmd (try: wt help)" ;;
+  esac
+}
+
+main "$@"

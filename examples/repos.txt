@@ -1,0 +1,12 @@
+# Sample config for scripts/session-log-compile.sh
+#
+# Copy to: ~/.config/agentkit/repos.txt
+# (override location with $AGENTKIT_REPOS_FILE)
+#
+# One absolute path per line. Lines starting with '#' are ignored.
+# Blank lines are ignored. Tilde is NOT expanded — use absolute paths.
+
+# Examples (replace with your own):
+# /home/you/code/your-org/your-repo
+# /home/you/code/kubernetes/kubernetes
+# /home/you/go/src/github.com/your-org/your-repo

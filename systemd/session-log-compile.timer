@@ -1,0 +1,11 @@
+[Unit]
+Description=Run session-log-compile daily at 17:00 America/Los_Angeles
+
+[Timer]
+OnCalendar=*-*-* 17:00:00 America/Los_Angeles
+Persistent=true
+AccuracySec=1m
+Unit=session-log-compile.service
+
+[Install]
+WantedBy=timers.target
