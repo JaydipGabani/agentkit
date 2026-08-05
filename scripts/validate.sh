@@ -9,6 +9,21 @@ fail() {
   exit 1
 }
 
+verify_sha256_manifest() {
+  local directory="$1"
+  local manifest="$2"
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    (cd "$directory" && sha256sum --check --quiet "$manifest")
+    return
+  fi
+  if command -v shasum >/dev/null 2>&1; then
+    (cd "$directory" && shasum -a 256 --check "$manifest" >/dev/null)
+    return
+  fi
+  fail "SHA-256 validation requires sha256sum or shasum"
+}
+
 frontmatter_has() {
   local file="$1"
   local field="$2"
@@ -114,7 +129,7 @@ jq -e '
 ' vendored-skills.json >/dev/null
 
 [[ "$(readlink skills/autoreview/CLAUDE.md)" == "AGENTS.md" ]] || fail "autoreview CLAUDE.md symlink changed"
-(cd skills/autoreview && sha256sum --check --quiet UPSTREAM.sha256) || fail "autoreview payload differs from upstream"
+verify_sha256_manifest skills/autoreview UPSTREAM.sha256 || fail "autoreview payload differs from upstream"
 python3 -m py_compile \
   skills/autoreview/scripts/autoreview \
   skills/autoreview/scripts/autoreview_test.py \
