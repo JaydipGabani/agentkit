@@ -13,7 +13,7 @@ delegated tasks.
 | `dependabot-round-robin.agent.md` | "manage Dependabot PRs" | Drains four OPA repository queues with bounded retries and explicit merges. |
 | `gatekeeper-policy-author.agent.md` | "write a Gatekeeper policy", "add CEL" | Authors dual-engine policies with generated manifests and test coverage. |
 | `pr-author.agent.md` | "open PR", "draft PR", "write commit message" | Produces upstream-ready branch, commit, and PR artifacts. |
-| `pr-reviewer.agent.md` | "review this", "code review", "is this safe to merge" | Applies full-repository review methodology, invokes autoreview once when appropriate, and verifies the final findings. |
+| `pr-reviewer.agent.md` | "review this", "code review", "is this safe to merge" | Starts non-trivial review-ready diffs with autoreview, then applies full-repository methodology and verifies the final findings. |
 | `session-log.agent.md` | "log this session", "wrap up" | Appends a compact handoff for the next brief. |
 | `worktree-setup.agent.md` | any non-trivial editing task | Enforces one agent per worktree before edits begin. |
 

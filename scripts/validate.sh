@@ -95,7 +95,16 @@ if grep -Fq '### 0. Multi-model orchestration' "$reviewer"; then
   fail "PR Reviewer duplicates autoreview model orchestration"
 fi
 grep -Fq 'The canonical `autoreview` skill exclusively owns external reviewer invocation' "$reviewer" || fail "PR Reviewer must delegate external review to autoreview"
-grep -Fq 'Run autoreview exactly once per unchanged bundle.' "$reviewer" || fail "PR Reviewer must bound autoreview invocation"
+grep -Fq 'Immediately after scope and base selection' "$reviewer" || fail "PR Reviewer must start autoreview after target selection"
+grep -Fq 'Run autoreview immediately, before the deep full-context review' "$reviewer" || fail "PR Reviewer must not defer autoreview until closeout"
+grep -Fq 'Within one PR Reviewer request, run autoreview to completion once for the captured bundle.' "$reviewer" || fail "PR Reviewer must bound autoreview per review request"
+grep -Fq "autoreview's source snapshot defines the bundle during execution" "$reviewer" || fail "PR Reviewer must use autoreview source snapshots"
+grep -Fq 'A failed invocation may be retried at most once total' "$reviewer" || fail "PR Reviewer must globally bound failed-run retries"
+grep -Fq 'a different second failure does not reset the retry budget' "$reviewer" || fail "PR Reviewer must not reset retries by failure class"
+grep -Fq 'A later user review request is a new review' "$reviewer" || fail "PR Reviewer must scope completed runs to one review request"
+if grep -Fq 'approaching clean closeout' "$reviewer"; then
+  fail "PR Reviewer still defers autoreview until closeout"
+fi
 grep -Fq '## External review' "$reviewer" || fail "PR Reviewer must report external review status"
 
 [[ "$(find skills -mindepth 2 -maxdepth 2 -name SKILL.md | wc -l)" -eq "${#expected_skills[@]}" ]] || fail "unexpected top-level skill count"
