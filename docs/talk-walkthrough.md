@@ -23,7 +23,7 @@ Five interlocking pillars, all custom, all distilled from real engineering pract
 |---|---|---|
 | 1. Git worktrees | Multiple agents/branches without clobbering | `~/.local/bin/wt` |
 | 2. Session logs | "What was I working on yesterday?" | `~/.local/bin/session-log-compile.sh` + systemd timer |
-| 3. Daily Brief agent | Standup-style snapshot + GitHub triage | `~/.claude/agents/daily-brief.md` |
+| 3. Daily Brief agent | Standup-style snapshot + GitHub triage | `~/.claude/agents/daily-brief.agent.md` |
 | 4. PR review skills | Senior-maintainer-grade code review | `~/.claude/skills/distributed-systems-pr-review/SKILL.md` + `pr-reviewer` agent |
 | 5. PR author skills | Upstream-ready commits, branches, descriptions | `~/.claude/skills/distributed-systems-author-style/SKILL.md` + `pr-author` agent |
 
@@ -40,7 +40,7 @@ Each is read-only by default, citation-driven, and modular — pick any one with
 ### Artifacts to open
 
 - [`.local/bin/wt`](../scripts/wt) — 280-line bash helper. Subcommands: `new`, `list`, `rm`, `prune`, `cd`. Read the header comment for the convention.
-- [`.claude/agents/worktree-setup.md`](../agents/worktree-setup.md) — agent that enforces the rule. Triggered when starting any non-trivial multi-edit task.
+- [`.claude/agents/worktree-setup.agent.md`](../agents/worktree-setup.agent.md) — agent that enforces the rule. Triggered when starting any non-trivial multi-edit task.
 
 ### Demo
 
@@ -114,7 +114,7 @@ cat ~/.local/state/session-logs/$(date +%Y-%m-%d).md
 
 ### Artifacts to open
 
-- [`.claude/agents/daily-brief.md`](../agents/daily-brief.md) — the agent prompt. Walk through the constraints (read-only, citation-required, 40-line cap), the 5-step approach, and the lane taxonomy.
+- [`.claude/agents/daily-brief.agent.md`](../agents/daily-brief.agent.md) — the agent prompt. Walk through the constraints (read-only, citation-required, 40-line cap), the 5-step approach, and the lane taxonomy.
 
 ### The lane taxonomy
 
@@ -169,7 +169,7 @@ Routing
 └── kubernetes/.github/instructions/kubernetes-skill-routing.instructions.md
 
 Agent that loads the right one
-└── ~/.claude/agents/pr-reviewer.md
+└── ~/.claude/agents/pr-reviewer.agent.md
 ```
 
 ### The seven moves (distilled from the mining corpus)
@@ -187,7 +187,7 @@ Agent that loads the right one
 - [`distributed-systems-pr-review/SKILL.md`](../skills/distributed-systems-pr-review/SKILL.md) — top-level skill.
 - [`gatekeeper-correctness-pr-review/SKILL.md`](https://github.com/open-policy-agent/gatekeeper/.github/skills/gatekeeper-correctness-pr-review/SKILL.md) — repo-specialized.
 - [`kubernetes-correctness-pr-review/SKILL.md`](https://github.com/kubernetes/kubernetes/.github/skills/kubernetes-correctness-pr-review/SKILL.md) — same pattern, different repo.
-- [`pr-reviewer.md`](../agents/pr-reviewer.md) — the agent that orchestrates.
+- [`pr-reviewer.agent.md`](../agents/pr-reviewer.agent.md) — the agent that orchestrates.
 - [`/memories/code-review-methodology.md`](command:claude.openMemory?code-review-methodology) — persistent reminder.
 - [`/memories/pr-review-techniques.md`](command:claude.openMemory?pr-review-techniques) — the 7 moves.
 
@@ -230,7 +230,7 @@ The agent will:
 ### Artifacts to open
 
 - [`distributed-systems-author-style/SKILL.md`](../skills/distributed-systems-author-style/SKILL.md) — 152 lines: branch naming, commit subject conventions, PR title format, body structure.
-- [`pr-author.md`](../agents/pr-author.md) — the agent. 122 lines.
+- [`pr-author.agent.md`](../agents/pr-author.agent.md) — the agent. 122 lines.
 - The 50 authored PRs and the distilled `author_patterns.txt` that
   drove the skill are part of the same private mining corpus described
   above and are not redistributed.
@@ -355,17 +355,17 @@ First 200 lines of `/memories/*.md` (top level) are loaded into every conversati
 | Pillar | File | Purpose |
 |---|---|---|
 | 1 | `~/.local/bin/wt` | Worktree helper |
-| 1 | `~/.claude/agents/worktree-setup.md` | Worktree agent |
+| 1 | `~/.claude/agents/worktree-setup.agent.md` | Worktree agent |
 | 2 | `~/.local/bin/session-log-compile.sh` | Compiler |
 | 2 | `~/.config/systemd/user/session-log-compile.{service,timer}` | Schedule |
 | 2 | `~/.local/state/session-logs/2026-05-06.md` | Today's log |
-| 3 | `~/.claude/agents/daily-brief.md` | Brief agent |
+| 3 | `~/.claude/agents/daily-brief.agent.md` | Brief agent |
 | 4 | `~/.claude/skills/distributed-systems-pr-review/SKILL.md` | General review skill |
 | 4 | `gatekeeper/.github/skills/gatekeeper-correctness-pr-review/SKILL.md` | Repo-specialized |
 | 4 | `kubernetes/.github/skills/kubernetes-correctness-pr-review/SKILL.md` | Repo-specialized |
-| 4 | `~/.claude/agents/pr-reviewer.md` | Review agent |
+| 4 | `~/.claude/agents/pr-reviewer.agent.md` | Review agent |
 | 5 | `~/.claude/skills/distributed-systems-author-style/SKILL.md` | Author skill |
-| 5 | `~/.claude/agents/pr-author.md` | Author agent |
+| 5 | `~/.claude/agents/pr-author.agent.md` | Author agent |
 | 4+5 | (mining corpus, kept private) | The corpus the skills came from. Abstracted ruleset is in `memories/pr-review-techniques.md`. |
 | Glue | `/memories/*.md` | Auto-loaded persistent notes |
 | Glue | `gatekeeper/.github/instructions/*.instructions.md` | Repo skill routing |

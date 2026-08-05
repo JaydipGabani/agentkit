@@ -18,18 +18,26 @@ that reads system prompts).
 
 | Pillar | Where | What it solves |
 |---|---|---|
-| **1. Worktree isolation** | [`scripts/wt`](scripts/wt) + [`agents/worktree-setup.md`](agents/worktree-setup.md) + [`memories/worktree-workflow.md`](memories/worktree-workflow.md) | Two agents on one repo never write to the same working tree. The agent gates editing tasks behind a worktree decision; `wt` is the helper. |
+| **1. Worktree isolation** | [`scripts/wt`](scripts/wt) + [`agents/worktree-setup.agent.md`](agents/worktree-setup.agent.md) + [`memories/worktree-workflow.md`](memories/worktree-workflow.md) | Two agents on one repo never write to the same working tree. The agent gates editing tasks behind a worktree decision; `wt` is the helper. |
 | **2. Daily session digest** | [`scripts/session-log-compile.sh`](scripts/session-log-compile.sh) + [`systemd/`](systemd/) | A nightly compile of every chat transcript and git activity into a single Markdown file under `~/.local/state/session-logs/`. Per-session: UID, workspace hash, primary repo, msg count, first/last prompt, last edit. |
-| **3. Daily Brief agent** | [`agents/daily-brief.md`](agents/daily-brief.md) | Reads the latest digest + live `gh` state and produces a prioritized standup: CHANGES → CI-FAIL → CONFLICT → REVIEW → READY → WIP → DRAFT → STALE. Read-only. |
-| **4. PR Reviewer voice** | [`agents/pr-reviewer.md`](agents/pr-reviewer.md) + [`skills/distributed-systems-pr-review/`](skills/distributed-systems-pr-review/) + [`memories/pr-review-techniques.md`](memories/pr-review-techniques.md) | Seven concrete review moves (trace the flow, future fragility, lock scope, test-as-no-op, silent-fallback hazard, error formatting, platform limits) distilled from senior maintainer history. |
-| **5. PR Author voice** | [`agents/pr-author.md`](agents/pr-author.md) + [`skills/distributed-systems-author-style/`](skills/distributed-systems-author-style/) | Upstream-ready titles, commit messages, and PR bodies in a distilled-maintainer style; pre-open self-review. Suggests `git`/`gh` commands; doesn't run them. |
+| **3. Daily Brief agent** | [`agents/daily-brief.agent.md`](agents/daily-brief.agent.md) | Reads the latest digest + live `gh` state and produces a prioritized standup: CHANGES → CI-FAIL → CONFLICT → REVIEW → READY → WIP → DRAFT → STALE. Read-only. |
+| **4. PR Reviewer voice** | [`agents/pr-reviewer.agent.md`](agents/pr-reviewer.agent.md) + [`skills/distributed-systems-pr-review/`](skills/distributed-systems-pr-review/) + [`memories/pr-review-techniques.md`](memories/pr-review-techniques.md) | Seven concrete review moves (trace the flow, future fragility, lock scope, test-as-no-op, silent-fallback hazard, error formatting, platform limits) distilled from senior maintainer history. |
+| **5. PR Author voice** | [`agents/pr-author.agent.md`](agents/pr-author.agent.md) + [`skills/distributed-systems-author-style/`](skills/distributed-systems-author-style/) | Upstream-ready titles, commit messages, and PR bodies in a distilled-maintainer style; pre-open self-review. Suggests `git`/`gh` commands; doesn't run them. |
+| **6. Complete catalog** | [`CATALOG.md`](CATALOG.md) | All seven bundled agents and six bundled skills, plus externally owned and commit-pinned recommendations. |
 
 ## Quick start
 
+Install every bundled skill globally with the standard skills CLI:
+
 ```sh
-git clone https://github.com/jaydipgabani/agentkit.git
+npx skills@latest add JaydipGabani/agentkit --all --global
+```
+
+Clone the repository for custom agents, scripts, and memory templates:
+
+```sh
+gh repo clone JaydipGabani/agentkit
 cd agentkit
-# Read the install steps for your host:
 $EDITOR INSTALL.md
 ```
 
@@ -38,8 +46,8 @@ The TL;DR for Claude Code on Linux:
 ```sh
 # Agents and skills
 mkdir -p ~/.claude/agents ~/.claude/skills
-cp agents/*.md          ~/.claude/agents/
-cp -r skills/*/         ~/.claude/skills/
+cp agents/*.agent.md    ~/.claude/agents/
+npx skills@latest add "$PWD" --all --global
 
 # Scripts
 install -Dm755 scripts/wt                    ~/.local/bin/wt
@@ -70,15 +78,20 @@ non-systemd setups) in [`INSTALL.md`](INSTALL.md).
 ```
 agentkit/
 ├─ agents/                     # general-purpose sub-agent prompts
-│  ├─ daily-brief.md
-│  ├─ pr-author.md
-│  ├─ pr-reviewer.md
-│  ├─ session-log.md
-│  └─ worktree-setup.md
-├─ skills/                     # general-purpose on-demand skill bundles
+│  ├─ daily-brief.agent.md
+│  ├─ dependabot-round-robin.agent.md
+│  ├─ gatekeeper-policy-author.agent.md
+│  ├─ pr-author.agent.md
+│  ├─ pr-reviewer.agent.md
+│  ├─ session-log.agent.md
+│  └─ worktree-setup.agent.md
+├─ skills/                     # installable on-demand skill bundles
 │  ├─ distributed-systems-pr-review/
 │  ├─ distributed-systems-author-style/
-│  └─ distributed-systems-security-hardening/
+│  ├─ distributed-systems-security-hardening/
+│  ├─ gatekeeper-local-testing/
+│  ├─ kubernetes-sig-auth-rigor/
+│  └─ pr-review-dashboard/
 ├─ scripts/
 │  ├─ wt                       # git-worktree helper
 │  └─ session-log-compile.sh   # daily digest compiler
@@ -93,12 +106,10 @@ agentkit/
 │  └─ tool-use.md
 ├─ docs/
 │  └─ talk-walkthrough.md      # 5-pillar live demo doc
-├─ examples/                   # domain-specific templates
-│  ├─ agents/
-│  │  └─ gatekeeper-policy-author.md
-│  ├─ skills/
-│  │  └─ kubernetes-sig-auth-rigor/
-│  └─ repos.txt
+├─ examples/
+│  └─ repos.txt                # session compiler repo-list template
+├─ CATALOG.md                  # bundled and externally owned inventory
+├─ upstream-skills.json        # audited upstream recommendation lock
 ├─ INSTALL.md
 ├─ LICENSE
 └─ README.md
@@ -108,7 +119,7 @@ agentkit/
 
 | Layer | Portable? | Notes |
 |---|---|---|
-| **Agent prompts** (`agents/*.md`) | Yes — pure Markdown + YAML frontmatter. | Path conventions are noted in the prompts; rewrite them for your host. |
+| **Agent prompts** (`agents/*.agent.md`) | Yes — pure Markdown + YAML frontmatter. | Use directly in VS Code or copy into another host's agent directory. |
 | **Skills** (`skills/*/SKILL.md`) | Yes — pure Markdown. | Some hosts call these "rules" or "instructions"; the content is the same. |
 | **Memories** (`memories/*.md`) | Yes, but the *install path* varies by host. | They're meant to be auto-loaded into every turn, not lazily fetched. |
 | **`scripts/wt`** | Linux/macOS Bash. | Pure `git`/`bash`; no extra deps. |
@@ -117,14 +128,13 @@ agentkit/
 
 ## Compatibility
 
-- **Editors**: VS Code (with Copilot Chat or any chat extension that
-  writes JSONL transcripts under `workspaceStorage/`). The session-log
-  compiler is the only piece coupled to VS Code's storage layout;
-  agents/skills are editor-agnostic.
-- **LLM hosts**: Claude Code is the primary target (sub-agents +
-  skills + memory tool match cleanly). The same Markdown works as
-  Cursor "rules", Continue "config", or Copilot Chat "custom
-  instructions" with light adaptation.
+- **Editors**: VS Code custom agents use `.github/agents/*.agent.md`, and
+  Copilot discovers skills under `.github/skills`, `.agents/skills`, or
+  `.claude/skills`. The session-log compiler is the only piece coupled
+  to VS Code's `workspaceStorage` layout.
+- **LLM hosts**: Claude Code can load the same Markdown from
+  `~/.claude/agents` and `~/.claude/skills`. Cursor and Continue need
+  light frontmatter or configuration adaptation.
 - **OS**: Linux (primary) and macOS for the scripts. The Markdown is
   OS-agnostic.
 
@@ -139,6 +149,12 @@ data — are **not redistributed** in this repo. If you do similar
 mining yourself, treat the corpus as private and publish only the
 abstracted ruleset.
 
+## Upstream skills
+
+[`CATALOG.md`](CATALOG.md) records the audited `sozercan/skills` commit and the
+decision for each upstream skill. External source is referenced rather than
+vendored so updates remain explicit and reviewable.
+
 ## Talk / walkthrough
 
 [`docs/talk-walkthrough.md`](docs/talk-walkthrough.md) is a 5-pillar
@@ -149,8 +165,13 @@ toolkit. Open the linked artifacts as you go.
 
 This is a personal toolkit shared for reuse, not a maintained product.
 PRs that improve portability (more hosts, better fallbacks, fewer
-hard-coded paths) are welcome. Domain-specific agents are best kept
-in your own fork.
+hard-coded paths) are welcome.
+
+Validate changes before pushing:
+
+```sh
+scripts/validate.sh
+```
 
 ## License
 

@@ -11,18 +11,46 @@ don't want.
 
 ## 1. Agents and skills
 
-### Claude Code (primary target)
+### Skills
+
+Install all bundled skills globally into every detected supported agent:
+
+```sh
+npx skills@latest add JaydipGabani/agentkit --all --global
+```
+
+Use the local checkout while developing agentkit:
+
+```sh
+npx skills@latest add "$REPO" --all --global
+```
+
+List the catalog without installing:
+
+```sh
+npx skills@latest add JaydipGabani/agentkit --list
+```
+
+### VS Code custom agents
+
+For one workspace, copy the canonical `.agent.md` files into its `.github/agents` directory:
+
+```sh
+WORKSPACE=/path/to/repository
+mkdir -p "$WORKSPACE/.github/agents"
+cp "$REPO"/agents/*.agent.md "$WORKSPACE/.github/agents/"
+```
+
+For user scope, place the files in the active VS Code profile's `agents/` directory. Profile storage paths vary by desktop, remote, and Codespaces hosts; use the VS Code profile/custom-agent UI to open the correct directory.
+
+Reload VS Code, then verify that `PR Reviewer` and `Daily Brief` appear in the agent picker.
+
+### Claude Code
 
 ```sh
 mkdir -p ~/.claude/agents ~/.claude/skills
-
-# General-purpose
-cp $REPO/agents/*.md  ~/.claude/agents/
-cp -r $REPO/skills/*/ ~/.claude/skills/
-
-# Optional: domain-specific examples
-# cp $REPO/examples/agents/*.md       ~/.claude/agents/
-# cp -r $REPO/examples/skills/*/      ~/.claude/skills/
+cp "$REPO"/agents/*.agent.md ~/.claude/agents/
+cp -r "$REPO"/skills/*/ ~/.claude/skills/
 ```
 
 Restart your Claude Code session (or reload its agents) so it picks
@@ -52,18 +80,6 @@ Continue 0.9+ supports per-workspace `~/.continue/config.json`. Add
 each agent under `customCommands`, with the agent body as the
 prompt. Skills become entries under `slashCommands`. Memories go
 into `systemMessage`.
-
-### Copilot Chat (VS Code)
-
-Copilot Chat reads `~/.github/copilot-instructions.md` (workspace
-scope) and your global GitHub user settings. The simplest reuse:
-
-1. Concatenate `memories/*.md` into a single document.
-2. Paste into your **Copilot Chat custom instructions**.
-
-Sub-agents are not first-class in Copilot Chat at time of writing,
-so the agents become "modes" you invoke explicitly: paste the agent
-body as a one-shot system prompt at the top of the chat.
 
 ---
 

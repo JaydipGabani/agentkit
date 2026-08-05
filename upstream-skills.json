@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "evaluatedOn": "2026-08-05",
+  "source": {
+    "repository": "sozercan/skills",
+    "url": "https://github.com/sozercan/skills",
+    "commit": "5cac953a24d54bbe613e4aa948dbf51b22468642",
+    "license": "MIT"
+  },
+  "skills": [
+    {
+      "name": "kusto-cli",
+      "decision": "recommended",
+      "reason": "Bounded and redacted Azure Data Explorer queries are useful for AKS investigations."
+    },
+    {
+      "name": "autoreview",
+      "decision": "optional",
+      "reason": "The executable harness adds reviewer isolation but overlaps the bundled PR Reviewer agent."
+    },
+    {
+      "name": "kindctl",
+      "decision": "conditional",
+      "reason": "Its scoped kubeconfig model conflicts with the current Gatekeeper helper's standard kind context ownership."
+    },
+    {
+      "name": "a365-cli",
+      "decision": "not-selected",
+      "reason": "Outside this toolkit's engineering workflow."
+    }
+  ]
+}
