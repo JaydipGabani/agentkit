@@ -73,6 +73,16 @@ for name in "${expected_agents[@]}"; do
   (( $(frontmatter_length "$file" description) <= 1024 )) || fail "$file description exceeds 1024 characters"
 done
 
+reviewer="agents/pr-reviewer.agent.md"
+sed -n '2,/^---$/p' "$reviewer" | grep -Fxq 'tools: [read, search, execute]' || fail "PR Reviewer must not invoke ad-hoc reviewer subagents"
+grep -Fq '### 0. Review orchestration' "$reviewer" || fail "PR Reviewer orchestration contract missing"
+if grep -Fq '### 0. Multi-model orchestration' "$reviewer"; then
+  fail "PR Reviewer duplicates autoreview model orchestration"
+fi
+grep -Fq 'The canonical `autoreview` skill exclusively owns external reviewer invocation' "$reviewer" || fail "PR Reviewer must delegate external review to autoreview"
+grep -Fq 'Run autoreview exactly once per unchanged bundle.' "$reviewer" || fail "PR Reviewer must bound autoreview invocation"
+grep -Fq '## External review' "$reviewer" || fail "PR Reviewer must report external review status"
+
 [[ "$(find skills -mindepth 2 -maxdepth 2 -name SKILL.md | wc -l)" -eq "${#expected_skills[@]}" ]] || fail "unexpected top-level skill count"
 [[ "$(find agents -maxdepth 1 -name '*.agent.md' | wc -l)" -eq "${#expected_agents[@]}" ]] || fail "unexpected agent count"
 

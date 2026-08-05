@@ -24,7 +24,7 @@ the task matches the skill's scope. Each skill is a directory with a
 - For Kubernetes diffs touching auth/RBAC/feature-gates, layer
   `kubernetes-sig-auth-rigor` on top.
 - `pr-author` agent loads `distributed-systems-author-style` always.
-- `autoreview` is an optional executable closeout check. Its findings remain advisory and must be verified by the calling agent.
+- `pr-reviewer` invokes `autoreview` at most once per unchanged bundle when the user requests an external pass or the risk justifies one. Autoreview owns model execution; the agent verifies its advisory findings against full repository context.
 
 ## Installing
 
