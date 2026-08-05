@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gatekeeper-local-good
+  labels:
+    gatekeeper.sh/tests: "yes"
+    owner: alice.agilebank.demo
