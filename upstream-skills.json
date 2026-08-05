@@ -14,11 +14,6 @@
       "reason": "Bounded and redacted Azure Data Explorer queries are useful for AKS investigations."
     },
     {
-      "name": "autoreview",
-      "decision": "optional",
-      "reason": "The executable harness adds reviewer isolation but overlaps the bundled PR Reviewer agent."
-    },
-    {
       "name": "kindctl",
       "decision": "conditional",
       "reason": "Its scoped kubeconfig model conflicts with the current Gatekeeper helper's standard kind context ownership."

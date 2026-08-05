@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "name": "autoreview",
+      "repository": "openclaw/agent-skills",
+      "url": "https://github.com/openclaw/agent-skills",
+      "commit": "2a409d348a4bcf6f15e41e9a20efd0b298a32528",
+      "path": "skills/autoreview",
+      "tree": "386f855dc2f9bca568da5e3f1091c45ac5c1a36e",
+      "manifest": "skills/autoreview/UPSTREAM.sha256",
+      "license": "MIT",
+      "localPayloadChanges": []
+    }
+  ]
+}

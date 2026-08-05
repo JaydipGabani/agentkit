@@ -8,6 +8,7 @@ the task matches the skill's scope. Each skill is a directory with a
 
 | Skill | When to load |
 |---|---|
+| `autoreview/` | Running an isolated external-model review as a closeout check. Supports Codex by default and optional Claude, Pi, or Kimi reviewers. |
 | `distributed-systems-pr-review/` | Reviewing a diff in any distributed-systems repo (Kubernetes ecosystem, CRDs, controllers, webhooks, mesh, secrets management). Codifies the seven-move methodology. |
 | `distributed-systems-author-style/` | Authoring or finalizing a PR in the same family of repos. Covers branch names, commit-message format, PR title prefixes, body templates, release-note blocks, `Signed-off-by`. |
 | `distributed-systems-security-hardening/` | Whenever a change touches anything security-relevant: pinning actions to SHAs, `securityContext`, `RoleBinding`/`ClusterRoleBinding` scoping, image digests, supply-chain. |
@@ -23,6 +24,7 @@ the task matches the skill's scope. Each skill is a directory with a
 - For Kubernetes diffs touching auth/RBAC/feature-gates, layer
   `kubernetes-sig-auth-rigor` on top.
 - `pr-author` agent loads `distributed-systems-author-style` always.
+- `autoreview` is an optional executable closeout check. Its findings remain advisory and must be verified by the calling agent.
 
 ## Installing
 
@@ -31,8 +33,6 @@ or see [`../INSTALL.md`](../INSTALL.md) for host-specific paths.
 
 ## Provenance
 
-Skills under this directory are **distilled patterns**, not raw mining
-output. They were produced by analyzing the public PR-review history of
-senior maintainers; the raw corpora are not included in this repo. If
-you build a similar mining pipeline, treat the corpus as private and
-publish only the abstracted ruleset.
+The distributed-systems skills are **distilled patterns**, not raw mining
+output. Their raw corpora are not included. `autoreview` is vendored unchanged
+from OpenClaw under the MIT License; see [`autoreview/UPSTREAM.md`](autoreview/UPSTREAM.md).

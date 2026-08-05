@@ -34,6 +34,7 @@ frontmatter_length() {
 }
 
 expected_skills=(
+  autoreview
   distributed-systems-author-style
   distributed-systems-pr-review
   distributed-systems-security-hardening
@@ -78,16 +79,44 @@ done
 bash -n \
   scripts/session-log-compile.sh \
   scripts/wt \
+  skills/autoreview/scripts/test-review-harness \
   skills/gatekeeper-local-testing/scripts/gator-local.sh \
   skills/gatekeeper-local-testing/scripts/kind-e2e.sh
 
 command -v jq >/dev/null || fail "jq is required"
+command -v python3 >/dev/null || fail "python3 is required"
 jq -e '
   .version == 1 and
   .source.repository == "sozercan/skills" and
   .source.commit == "5cac953a24d54bbe613e4aa948dbf51b22468642" and
-  (.skills | length) == 4
+  (.skills | length) == 3 and
+  ([.skills[].name] | sort) == (["a365-cli", "kindctl", "kusto-cli"] | sort)
 ' upstream-skills.json >/dev/null
+jq -e '
+  .version == 1 and
+  (.skills | length) == 1 and
+  .skills[0].name == "autoreview" and
+  .skills[0].repository == "openclaw/agent-skills" and
+  .skills[0].commit == "2a409d348a4bcf6f15e41e9a20efd0b298a32528" and
+  .skills[0].tree == "386f855dc2f9bca568da5e3f1091c45ac5c1a36e" and
+  .skills[0].license == "MIT" and
+  .skills[0].localPayloadChanges == []
+' vendored-skills.json >/dev/null
+
+[[ "$(readlink skills/autoreview/CLAUDE.md)" == "AGENTS.md" ]] || fail "autoreview CLAUDE.md symlink changed"
+(cd skills/autoreview && sha256sum --check --quiet UPSTREAM.sha256) || fail "autoreview payload differs from upstream"
+python3 -m py_compile \
+  skills/autoreview/scripts/autoreview \
+  skills/autoreview/scripts/autoreview_test.py \
+  skills/autoreview/scripts/test-review-harness.py
+for check in \
+  config-defaults fallback-scope engine-isolation heartbeat-metrics \
+  json-array-parser opencode-jsonl-parser opencode-isolation cursor-jsonl-parser; do
+  python3 skills/autoreview/scripts/autoreview "--self-test-$check"
+done
+python3 -m unittest \
+  skills/autoreview/scripts/autoreview_test.py \
+  skills.autoreview.tests.test_autoreview_hardening
 
 for name in \
   Explore \
