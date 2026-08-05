@@ -1,0 +1,11 @@
+d413df783f69b238904fb2b2428f313c99bcfaae7f5992412506bf09aac9ee2f  ./AGENTS.md
+53d9676e35ce0a13ac3b9ff6e33f83d9998c24e08ab2fe626521425c65d12986  ./SKILL.md
+711accc0dfe2f642b44c9401f05966996087659ec2e17d67b0654aa663d4b51d  ./scripts/autoreview
+98cb20357ef2ebab54437d5f9354509dd442798815143ce930060f1d4e642c2e  ./scripts/autoreview_test.py
+d58e158818a634b291893b74d1e21b0027e187ef6ee28a1cb84361345e1d5308  ./scripts/test-review-harness
+55e95ac5f8a209acb8e31f2abbcae3ddad3d3d90b59daa907065673950e1418b  ./scripts/test-review-harness.ps1
+8d029dd505346afdbdd7797839850daa684a5fefe0e2157054caea8d10436186  ./scripts/test-review-harness.py
+986799d4f26a94be975974bdd5b1d98b93b447cd7e97ff7b0a68d5332d148a1d  ./tests/fixtures/typescript-benign-config-path-references.ts
+bd26fbc92535b06e4ec82445d05c72ee910798f1e1cead3de63e7107fc2b5408  ./tests/fixtures/typescript-benign-references.ts
+7637763036781849cbc9f3950eb2783f87c0b0451f8fed5aa3782b483e01c76e  ./tests/fixtures/typescript-sensitive-literals.ts
+d566ba8fbe55527a137244ed18f12bc5236b04f2228abaaeb7621e336fe14d2d  ./tests/test_autoreview_hardening.py
