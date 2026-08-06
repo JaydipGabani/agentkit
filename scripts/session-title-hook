@@ -1,0 +1,172 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs = require('node:fs');
+const http = require('node:http');
+const os = require('node:os');
+const path = require('node:path');
+
+const MAX_INPUT_BYTES = 1024 * 1024;
+const MAX_DESCRIPTOR_AGE_MS = 5 * 60 * 1000;
+const BRIDGE_PROTOCOL_VERSION = 2;
+
+function bridgeDirectory(env = process.env) {
+  return env.AGENTKIT_SESSION_TITLE_BRIDGE_DIR
+    || path.join(os.homedir(), '.cache', 'agentkit', 'session-title-bridges');
+}
+
+function pathContains(parent, child) {
+  if (!parent || !child) {
+    return false;
+  }
+  const relative = path.relative(path.resolve(parent), path.resolve(child));
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function descriptorScore(descriptor, cwd) {
+  const matches = (descriptor.workspaceFolders ?? [])
+    .filter((folder) => pathContains(folder, cwd))
+    .map((folder) => path.resolve(folder).length);
+  return matches.length > 0 ? Math.max(...matches) : -1;
+}
+
+async function readDescriptors(directory, cwd) {
+  let names;
+  try {
+    names = await fs.promises.readdir(directory);
+  } catch {
+    return [];
+  }
+
+  const descriptors = [];
+  for (const name of names.filter((entry) => entry.endsWith('.json'))) {
+    const filePath = path.join(directory, name);
+    try {
+      const descriptor = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
+      const updatedAt = Number(descriptor.updatedAt ?? 0);
+      const current = updatedAt > 0 && Date.now() - updatedAt <= MAX_DESCRIPTOR_AGE_MS;
+        if (descriptor.protocolVersion === BRIDGE_PROTOCOL_VERSION
+          && current
+          && Number.isInteger(descriptor.port)
+          && typeof descriptor.token === 'string') {
+        descriptors.push({ ...descriptor, filePath, score: descriptorScore(descriptor, cwd) });
+      }
+    } catch {
+      // Ignore incomplete or stale descriptors.
+    }
+  }
+
+  const matching = descriptors.filter((descriptor) => descriptor.score >= 0);
+  if (matching.length > 0) {
+    matching.sort((left, right) =>
+      right.score - left.score || right.updatedAt - left.updatedAt);
+    const topMatches = matching.filter((descriptor) => descriptor.score === matching[0].score);
+    if (topMatches.length === 1) {
+      return topMatches;
+    }
+    const focused = topMatches
+      .filter((descriptor) => descriptor.focused === true)
+      .sort((left, right) => Number(right.focusChangedAt ?? 0) - Number(left.focusChangedAt ?? 0));
+    if (focused.length === 0) {
+      return [];
+    }
+    return focused.length > 1
+      && Number(focused[0].focusChangedAt ?? 0) === Number(focused[1].focusChangedAt ?? 0)
+      ? []
+      : [focused[0]];
+  }
+
+  return descriptors.length === 1 ? descriptors : [];
+}
+
+function postHook(descriptor, input, timeoutMs = 18_000) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(input);
+    const request = http.request({
+      host: '127.0.0.1',
+      port: descriptor.port,
+      path: '/hook',
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(body),
+        'x-agentkit-token': descriptor.token,
+      },
+    }, (response) => {
+      response.resume();
+      response.on('end', () => {
+        if (response.statusCode === 200) {
+          resolve();
+        } else {
+          reject(new Error(`bridge returned HTTP ${response.statusCode}`));
+        }
+      });
+    });
+    request.setTimeout(timeoutMs, () => {
+      const error = new Error('bridge request timed out');
+      error.code = 'ETIMEDOUT';
+      request.destroy(error);
+    });
+    request.on('error', reject);
+    request.end(body);
+  });
+}
+
+async function readStdin() {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of process.stdin) {
+    size += chunk.length;
+    if (size > MAX_INPUT_BYTES) {
+      throw new Error('hook input is too large');
+    }
+    chunks.push(chunk);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+async function main() {
+  const input = await readStdin();
+  if (/^\s*\/rename(?:\s|$)/i.test(String(input.prompt ?? ''))) {
+    return;
+  }
+
+  const cwd = typeof input.cwd === 'string' ? input.cwd : '';
+  const descriptors = await readDescriptors(bridgeDirectory(), cwd);
+  for (const descriptor of descriptors) {
+    try {
+      await postHook(descriptor, input);
+      return;
+    } catch (error) {
+      if (shouldDiscardDescriptor(error)) {
+        await fs.promises.unlink(descriptor.filePath).catch(() => {});
+      }
+      if (process.env.AGENTKIT_SESSION_TITLE_DEBUG) {
+        process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      }
+    }
+  }
+}
+
+function shouldDiscardDescriptor(error) {
+  return error?.code === 'ECONNREFUSED'
+    || error?.code === 'ENOENT';
+}
+
+if (require.main === module) {
+  main().catch((error) => {
+    if (process.env.AGENTKIT_SESSION_TITLE_DEBUG) {
+      process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    }
+    process.exitCode = 0;
+  });
+}
+
+module.exports = {
+  bridgeDirectory,
+  descriptorScore,
+  pathContains,
+  postHook,
+  readDescriptors,
+  shouldDiscardDescriptor,
+};

@@ -36,6 +36,15 @@ npx skills@latest add JaydipGabani/agentkit --all --global
 
 Agent installation is host-specific; see [`INSTALL.md`](INSTALL.md).
 
+## Bundled VS Code extension
+
+| Extension | Purpose |
+| --- | --- |
+| [`Agentkit Session Titles`](extensions/session-title/) | Rename local chat and supported Agents Window sessions to the title of a GitHub PR or Issue linked in the prompt. |
+
+Install it with `scripts/install-session-titles.sh`; see
+[`INSTALL.md`](INSTALL.md) for prerequisites and provider limitations.
+
 ## Vendored upstream skills
 
 | Skill | Source | Snapshot | License | Local payload changes |

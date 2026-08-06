@@ -5,10 +5,10 @@ LLM-assisted IDE into a **multi-repo, multi-agent dev workflow** — with
 durable session memory, daily standup briefs, parallel-agent isolation,
 and PR review/author voices distilled from senior maintainers.
 
-This is not a framework or an extension. It's a small, hostable set of
-Markdown prompts and supporting scripts that you drop into your
-existing setup (Claude Code, Cursor, Continue, Copilot Chat — anything
-that reads system prompts).
+This is not a framework. It is a small, hostable set of Markdown prompts,
+supporting scripts, and one optional VS Code extension that you drop into your
+existing setup (Claude Code, Cursor, Continue, Copilot Chat — anything that
+reads system prompts).
 
 > If you've ever ended a day with nine open chat sessions across five
 > worktrees and three repos, then come back the next morning unsure
@@ -23,7 +23,8 @@ that reads system prompts).
 | **3. Daily Brief agent** | [`agents/daily-brief.agent.md`](agents/daily-brief.agent.md) | Reads the latest digest + live `gh` state and produces a prioritized standup: CHANGES → CI-FAIL → CONFLICT → REVIEW → READY → WIP → DRAFT → STALE. Read-only. |
 | **4. PR review orchestration** | [`agents/pr-reviewer.agent.md`](agents/pr-reviewer.agent.md) + [`skills/autoreview/`](skills/autoreview/) + [`skills/distributed-systems-pr-review/`](skills/distributed-systems-pr-review/) | Non-trivial review-ready diffs start with one isolated autoreview pass; the agent then applies full-repository judgment, verifies findings, and owns the final review. |
 | **5. PR Author voice** | [`agents/pr-author.agent.md`](agents/pr-author.agent.md) + [`skills/distributed-systems-author-style/`](skills/distributed-systems-author-style/) | Upstream-ready titles, commit messages, and PR bodies in a distilled-maintainer style; pre-open self-review. Suggests `git`/`gh` commands; doesn't run them. |
-| **6. Complete catalog** | [`CATALOG.md`](CATALOG.md) | All seven bundled agents and seven bundled skills, plus externally owned and commit-pinned recommendations. |
+| **6. Human-readable session titles** | [`extensions/session-title/`](extensions/session-title/) + [`scripts/session-title-hook`](scripts/session-title-hook) | Renames local chat and Copilot CLI sessions to the exact title of a GitHub PR or Issue linked in the prompt. |
+| **7. Complete catalog** | [`CATALOG.md`](CATALOG.md) | All seven bundled agents and seven bundled skills, plus externally owned and commit-pinned recommendations. |
 
 ## Quick start
 
@@ -68,6 +69,9 @@ systemctl --user enable --now session-log-compile.timer
 ~/.local/bin/wt list
 ~/.local/bin/session-log-compile.sh
 ls ~/.local/state/session-logs/
+
+# Optional VS Code session-title automation
+scripts/install-session-titles.sh
 ```
 
 Full host-specific instructions (Claude Code, Cursor, Continue, Codex,
@@ -94,8 +98,12 @@ agentkit/
 │  ├─ kubernetes-sig-auth-rigor/
 │  └─ pr-review-dashboard/
 ├─ scripts/
+│  ├─ install-session-titles.sh # package + install title automation
+│  ├─ session-title-hook        # UserPromptSubmit bridge client
 │  ├─ wt                       # git-worktree helper
 │  └─ session-log-compile.sh   # daily digest compiler
+├─ extensions/
+│  └─ session-title/            # optional VS Code extension + tests
 ├─ systemd/
 │  ├─ session-log-compile.service
 │  └─ session-log-compile.timer
@@ -126,14 +134,15 @@ agentkit/
 | **Memories** (`memories/*.md`) | Yes, but the *install path* varies by host. | They're meant to be auto-loaded into every turn, not lazily fetched. |
 | **`scripts/wt`** | Linux/macOS Bash. | Pure `git`/`bash`; no extra deps. |
 | **`scripts/session-log-compile.sh`** | Linux/macOS Bash. Requires `jq`, `find`, `git`. Reads VS Code chat transcripts under `~/.vscode-server/data/User/workspaceStorage/`. | The transcript path is VS Code-specific. For other editors, point the script at the equivalent transcript directory. |
+| **Session-title automation** | VS Code 1.132+, Node.js, and `gh` for PR metadata. | The hook is portable across local and remote VS Code extension hosts; title adapters are VS Code-specific. |
 | **`systemd/`** | Linux with systemd user instance. | Provided as a starting point; macOS users want `launchd`, others want cron. The `systemd/README.md` covers conversions. |
 
 ## Compatibility
 
 - **Editors**: VS Code custom agents use `.github/agents/*.agent.md`, and
   Copilot discovers skills under `.github/skills`, `.agents/skills`, or
-  `.claude/skills`. The session-log compiler is the only piece coupled
-  to VS Code's `workspaceStorage` layout.
+  `.claude/skills`. The session-log compiler and optional session-title
+  extension are the only pieces coupled to VS Code.
 - **LLM hosts**: Claude Code can load the same Markdown from
   `~/.claude/agents` and `~/.claude/skills`. Cursor and Continue need
   light frontmatter or configuration adaptation.
