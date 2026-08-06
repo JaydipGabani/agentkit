@@ -90,13 +90,27 @@ done
 
 reviewer="agents/pr-reviewer.agent.md"
 sed -n '2,/^---$/p' "$reviewer" | grep -Fxq 'tools: [read, search, execute]' || fail "PR Reviewer must not invoke ad-hoc reviewer subagents"
-grep -Fq '### 0. Review orchestration' "$reviewer" || fail "PR Reviewer orchestration contract missing"
 if grep -Fq '### 0. Multi-model orchestration' "$reviewer"; then
   fail "PR Reviewer duplicates autoreview model orchestration"
 fi
-grep -Fq 'The canonical `autoreview` skill exclusively owns external reviewer invocation' "$reviewer" || fail "PR Reviewer must delegate external review to autoreview"
-grep -Fq 'Run autoreview exactly once per unchanged bundle.' "$reviewer" || fail "PR Reviewer must bound autoreview invocation"
-grep -Fq '## External review' "$reviewer" || fail "PR Reviewer must report external review status"
+reviewer_requirements=(
+  '### 0. Review orchestration' 'PR Reviewer orchestration contract missing'
+  'The canonical `autoreview` skill exclusively owns external reviewer invocation' 'PR Reviewer must delegate external review to autoreview'
+  'Immediately after scope and base selection' 'PR Reviewer must start autoreview after target selection'
+  'Run autoreview immediately, before the deep full-context review' 'PR Reviewer must not defer autoreview until closeout'
+  'Within one PR Reviewer request, run autoreview to completion once for the captured bundle.' 'PR Reviewer must bound autoreview per review request'
+  "autoreview's source snapshot defines the bundle during execution" 'PR Reviewer must use autoreview source snapshots'
+  'A failed invocation may be retried at most once total' 'PR Reviewer must globally bound failed-run retries'
+  'a different second failure does not reset the retry budget' 'PR Reviewer must not reset retries by failure class'
+  'A later user review request is a new review' 'PR Reviewer must scope completed runs to one review request'
+  '## External review' 'PR Reviewer must report external review status'
+)
+for ((i = 0; i < ${#reviewer_requirements[@]}; i += 2)); do
+  grep -Fq "${reviewer_requirements[i]}" "$reviewer" || fail "${reviewer_requirements[i + 1]}"
+done
+if grep -Fq 'approaching clean closeout' "$reviewer"; then
+  fail "PR Reviewer still defers autoreview until closeout"
+fi
 
 [[ "$(find skills -mindepth 2 -maxdepth 2 -name SKILL.md | wc -l)" -eq "${#expected_skills[@]}" ]] || fail "unexpected top-level skill count"
 [[ "$(find agents -maxdepth 1 -name '*.agent.md' | wc -l)" -eq "${#expected_agents[@]}" ]] || fail "unexpected agent count"
