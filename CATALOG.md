@@ -2,7 +2,7 @@
 
 Snapshot date: 2026-08-05.
 
-This catalog separates content maintained in this repository from skills supplied by another repository, plugin, or editor extension. External content stays with its owner so updates, licensing, and trust boundaries remain clear. The active snapshot contains 8 agents and 19 skills: 7 agents and 6 skills are bundled here; the rest are runtime-managed references below.
+This catalog separates content maintained in this repository from skills supplied by another repository, plugin, or editor extension. External content stays with its owner so updates, licensing, and trust boundaries remain clear. The active snapshot contains 8 agents and 20 skills: 7 agents and 7 skills are bundled here; the rest are runtime-managed references below.
 
 ## Bundled agents
 
@@ -12,7 +12,7 @@ This catalog separates content maintained in this repository from skills supplie
 | [`Dependabot Round Robin`](agents/dependabot-round-robin.agent.md) | Drain Dependabot queues across the four OPA repositories. |
 | [`Gatekeeper Policy Author`](agents/gatekeeper-policy-author.agent.md) | Author dual-engine Gatekeeper Library policies. |
 | [`PR Author`](agents/pr-author.agent.md) | Prepare branches, commits, and pull request text. |
-| [`PR Reviewer`](agents/pr-reviewer.agent.md) | Run evidence-based, parallel review passes and synthesize findings. |
+| [`PR Reviewer`](agents/pr-reviewer.agent.md) | Apply full-repository methodology, invoke autoreview once when justified, and verify the final findings. |
 | [`Session Log`](agents/session-log.agent.md) | Record a compact handoff for the next session. |
 | [`Worktree Setup`](agents/worktree-setup.agent.md) | Isolate editable work before another agent can collide with it. |
 
@@ -20,6 +20,7 @@ This catalog separates content maintained in this repository from skills supplie
 
 | Skill | Purpose |
 | --- | --- |
+| [`autoreview`](skills/autoreview/SKILL.md) | Isolated, bundle-driven review through Codex, Claude, Pi, or Kimi. |
 | [`distributed-systems-author-style`](skills/distributed-systems-author-style/SKILL.md) | Upstream branch, commit, and PR conventions. |
 | [`distributed-systems-pr-review`](skills/distributed-systems-pr-review/SKILL.md) | Correctness-focused review for distributed systems. |
 | [`distributed-systems-security-hardening`](skills/distributed-systems-security-hardening/SKILL.md) | Security, CI, RBAC, supply-chain, and rollout checks. |
@@ -34,6 +35,14 @@ npx skills@latest add JaydipGabani/agentkit --all --global
 ```
 
 Agent installation is host-specific; see [`INSTALL.md`](INSTALL.md).
+
+## Vendored upstream skills
+
+| Skill | Source | Snapshot | License | Local payload changes |
+| --- | --- | --- | --- | --- |
+| `autoreview` | [`openclaw/agent-skills`](https://github.com/openclaw/agent-skills) | [`2a409d3`](https://github.com/openclaw/agent-skills/tree/2a409d348a4bcf6f15e41e9a20efd0b298a32528/skills/autoreview) | MIT | None |
+
+See [`vendored-skills.json`](vendored-skills.json) and [`skills/autoreview/UPSTREAM.md`](skills/autoreview/UPSTREAM.md) for the immutable source and checksum details.
 
 ## Referenced, not redistributed
 
@@ -61,7 +70,6 @@ Source: [`sozercan/skills`](https://github.com/sozercan/skills) at [`5cac953a24d
 | Skill | Decision | Rationale |
 | --- | --- | --- |
 | `kusto-cli` | Recommended | Useful for bounded, redacted AKS and Azure Data Explorer investigations. |
-| `autoreview` | Optional | Adds a hardened executable review harness; overlaps with `PR Reviewer`, so use it when an external CLI review is explicitly useful. |
 | `kindctl` | Conditional | Strong multi-worktree kubeconfig isolation, but it conflicts with `gatekeeper-local-testing`'s standard `kind-*` context ownership. Do not enable both for the same cluster until that helper is adapted to kindctl. |
 | `a365-cli` | Not selected | Outside this toolkit's engineering workflow. |
 
@@ -72,7 +80,7 @@ checkout="$(mktemp -d)/sozercan-skills"
 gh repo clone sozercan/skills "$checkout"
 git -C "$checkout" switch --detach 5cac953a24d54bbe613e4aa948dbf51b22468642
 test "$(git -C "$checkout" rev-parse HEAD)" = 5cac953a24d54bbe613e4aa948dbf51b22468642
-npx skills@latest add "$checkout" --skill kusto-cli autoreview --global -y
+npx skills@latest add "$checkout" --skill kusto-cli --global -y
 ```
 
 Install `kindctl` separately only after choosing its scoped-kubeconfig model:

@@ -23,12 +23,19 @@ notice and the abstraction-only redistribution practice.
 
 Third-party content
 
-No third-party software is bundled with this repository. The shell
-scripts (`scripts/wt`, `scripts/session-log-compile.sh`) depend at
-runtime on `git`, `jq`, `find`, and `bash`; these are not redistributed.
+The `skills/autoreview` payload is vendored unchanged from
+`openclaw/agent-skills` commit
+`2a409d348a4bcf6f15e41e9a20efd0b298a32528` under the MIT License.
+Copyright (c) 2026 openclaw. Its license is reproduced at
+`skills/autoreview/LICENSE`.
+
+The agentkit shell scripts (`scripts/wt`,
+`scripts/session-log-compile.sh`) depend at runtime on `git`, `jq`,
+`find`, and `bash`; these dependencies are not redistributed.
 
 `upstream-skills.json` records evaluated external skills by repository,
-license, and commit. Their source is not copied into this repository.
+license, and commit. `vendored-skills.json` records copied skill source,
+license, commit, and subtree. No other external skill source is copied.
 
 The optional Mermaid support in the PR review dashboard template loads
 Mermaid 10.9.1 from jsDelivr with a pinned URL and subresource integrity.

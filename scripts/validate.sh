@@ -9,6 +9,21 @@ fail() {
   exit 1
 }
 
+verify_sha256_manifest() {
+  local directory="$1"
+  local manifest="$2"
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    (cd "$directory" && sha256sum --check --quiet "$manifest")
+    return
+  fi
+  if command -v shasum >/dev/null 2>&1; then
+    (cd "$directory" && shasum -a 256 --check "$manifest" >/dev/null)
+    return
+  fi
+  fail "SHA-256 validation requires sha256sum or shasum"
+}
+
 frontmatter_has() {
   local file="$1"
   local field="$2"
@@ -34,6 +49,7 @@ frontmatter_length() {
 }
 
 expected_skills=(
+  autoreview
   distributed-systems-author-style
   distributed-systems-pr-review
   distributed-systems-security-hardening
@@ -72,22 +88,60 @@ for name in "${expected_agents[@]}"; do
   (( $(frontmatter_length "$file" description) <= 1024 )) || fail "$file description exceeds 1024 characters"
 done
 
+reviewer="agents/pr-reviewer.agent.md"
+sed -n '2,/^---$/p' "$reviewer" | grep -Fxq 'tools: [read, search, execute]' || fail "PR Reviewer must not invoke ad-hoc reviewer subagents"
+grep -Fq '### 0. Review orchestration' "$reviewer" || fail "PR Reviewer orchestration contract missing"
+if grep -Fq '### 0. Multi-model orchestration' "$reviewer"; then
+  fail "PR Reviewer duplicates autoreview model orchestration"
+fi
+grep -Fq 'The canonical `autoreview` skill exclusively owns external reviewer invocation' "$reviewer" || fail "PR Reviewer must delegate external review to autoreview"
+grep -Fq 'Run autoreview exactly once per unchanged bundle.' "$reviewer" || fail "PR Reviewer must bound autoreview invocation"
+grep -Fq '## External review' "$reviewer" || fail "PR Reviewer must report external review status"
+
 [[ "$(find skills -mindepth 2 -maxdepth 2 -name SKILL.md | wc -l)" -eq "${#expected_skills[@]}" ]] || fail "unexpected top-level skill count"
 [[ "$(find agents -maxdepth 1 -name '*.agent.md' | wc -l)" -eq "${#expected_agents[@]}" ]] || fail "unexpected agent count"
 
 bash -n \
   scripts/session-log-compile.sh \
   scripts/wt \
+  skills/autoreview/scripts/test-review-harness \
   skills/gatekeeper-local-testing/scripts/gator-local.sh \
   skills/gatekeeper-local-testing/scripts/kind-e2e.sh
 
 command -v jq >/dev/null || fail "jq is required"
+command -v python3 >/dev/null || fail "python3 is required"
 jq -e '
   .version == 1 and
   .source.repository == "sozercan/skills" and
   .source.commit == "5cac953a24d54bbe613e4aa948dbf51b22468642" and
-  (.skills | length) == 4
+  (.skills | length) == 3 and
+  ([.skills[].name] | sort) == (["a365-cli", "kindctl", "kusto-cli"] | sort)
 ' upstream-skills.json >/dev/null
+jq -e '
+  .version == 1 and
+  (.skills | length) == 1 and
+  .skills[0].name == "autoreview" and
+  .skills[0].repository == "openclaw/agent-skills" and
+  .skills[0].commit == "2a409d348a4bcf6f15e41e9a20efd0b298a32528" and
+  .skills[0].tree == "386f855dc2f9bca568da5e3f1091c45ac5c1a36e" and
+  .skills[0].license == "MIT" and
+  .skills[0].localPayloadChanges == []
+' vendored-skills.json >/dev/null
+
+[[ "$(readlink skills/autoreview/CLAUDE.md)" == "AGENTS.md" ]] || fail "autoreview CLAUDE.md symlink changed"
+verify_sha256_manifest skills/autoreview UPSTREAM.sha256 || fail "autoreview payload differs from upstream"
+python3 -m py_compile \
+  skills/autoreview/scripts/autoreview \
+  skills/autoreview/scripts/autoreview_test.py \
+  skills/autoreview/scripts/test-review-harness.py
+for check in \
+  config-defaults fallback-scope engine-isolation heartbeat-metrics \
+  json-array-parser opencode-jsonl-parser opencode-isolation cursor-jsonl-parser; do
+  python3 skills/autoreview/scripts/autoreview "--self-test-$check"
+done
+python3 -m unittest \
+  skills/autoreview/scripts/autoreview_test.py \
+  skills.autoreview.tests.test_autoreview_hardening
 
 for name in \
   Explore \

@@ -6,7 +6,7 @@ durable session memory, daily standup briefs, parallel-agent isolation,
 and PR review/author voices distilled from senior maintainers.
 
 This is not a framework or an extension. It's a small, hostable set of
-markdown prompts and POSIX shell scripts that you drop into your
+Markdown prompts and supporting scripts that you drop into your
 existing setup (Claude Code, Cursor, Continue, Copilot Chat — anything
 that reads system prompts).
 
@@ -21,9 +21,9 @@ that reads system prompts).
 | **1. Worktree isolation** | [`scripts/wt`](scripts/wt) + [`agents/worktree-setup.agent.md`](agents/worktree-setup.agent.md) + [`memories/worktree-workflow.md`](memories/worktree-workflow.md) | Two agents on one repo never write to the same working tree. The agent gates editing tasks behind a worktree decision; `wt` is the helper. |
 | **2. Daily session digest** | [`scripts/session-log-compile.sh`](scripts/session-log-compile.sh) + [`systemd/`](systemd/) | A nightly compile of every chat transcript and git activity into a single Markdown file under `~/.local/state/session-logs/`. Per-session: UID, workspace hash, primary repo, msg count, first/last prompt, last edit. |
 | **3. Daily Brief agent** | [`agents/daily-brief.agent.md`](agents/daily-brief.agent.md) | Reads the latest digest + live `gh` state and produces a prioritized standup: CHANGES → CI-FAIL → CONFLICT → REVIEW → READY → WIP → DRAFT → STALE. Read-only. |
-| **4. PR Reviewer voice** | [`agents/pr-reviewer.agent.md`](agents/pr-reviewer.agent.md) + [`skills/distributed-systems-pr-review/`](skills/distributed-systems-pr-review/) + [`memories/pr-review-techniques.md`](memories/pr-review-techniques.md) | Seven concrete review moves (trace the flow, future fragility, lock scope, test-as-no-op, silent-fallback hazard, error formatting, platform limits) distilled from senior maintainer history. |
+| **4. PR review orchestration** | [`agents/pr-reviewer.agent.md`](agents/pr-reviewer.agent.md) + [`skills/autoreview/`](skills/autoreview/) + [`skills/distributed-systems-pr-review/`](skills/distributed-systems-pr-review/) | Full-repository judgment and seven concrete review moves, with one isolated autoreview pass when requested or justified. The agent verifies and synthesizes the final findings. |
 | **5. PR Author voice** | [`agents/pr-author.agent.md`](agents/pr-author.agent.md) + [`skills/distributed-systems-author-style/`](skills/distributed-systems-author-style/) | Upstream-ready titles, commit messages, and PR bodies in a distilled-maintainer style; pre-open self-review. Suggests `git`/`gh` commands; doesn't run them. |
-| **6. Complete catalog** | [`CATALOG.md`](CATALOG.md) | All seven bundled agents and six bundled skills, plus externally owned and commit-pinned recommendations. |
+| **6. Complete catalog** | [`CATALOG.md`](CATALOG.md) | All seven bundled agents and seven bundled skills, plus externally owned and commit-pinned recommendations. |
 
 ## Quick start
 
@@ -86,6 +86,7 @@ agentkit/
 │  ├─ session-log.agent.md
 │  └─ worktree-setup.agent.md
 ├─ skills/                     # installable on-demand skill bundles
+│  ├─ autoreview/              # vendored OpenClaw review harness
 │  ├─ distributed-systems-pr-review/
 │  ├─ distributed-systems-author-style/
 │  ├─ distributed-systems-security-hardening/
@@ -110,6 +111,7 @@ agentkit/
 │  └─ repos.txt                # session compiler repo-list template
 ├─ CATALOG.md                  # bundled and externally owned inventory
 ├─ upstream-skills.json        # audited upstream recommendation lock
+├─ vendored-skills.json        # immutable vendored-source lock
 ├─ INSTALL.md
 ├─ LICENSE
 └─ README.md
@@ -120,7 +122,7 @@ agentkit/
 | Layer | Portable? | Notes |
 |---|---|---|
 | **Agent prompts** (`agents/*.agent.md`) | Yes — pure Markdown + YAML frontmatter. | Use directly in VS Code or copy into another host's agent directory. |
-| **Skills** (`skills/*/SKILL.md`) | Yes — pure Markdown. | Some hosts call these "rules" or "instructions"; the content is the same. |
+| **Skills** (`skills/*/SKILL.md`) | Yes. | Most are pure Markdown; `autoreview` also bundles a cross-platform Python review harness and tests. |
 | **Memories** (`memories/*.md`) | Yes, but the *install path* varies by host. | They're meant to be auto-loaded into every turn, not lazily fetched. |
 | **`scripts/wt`** | Linux/macOS Bash. | Pure `git`/`bash`; no extra deps. |
 | **`scripts/session-log-compile.sh`** | Linux/macOS Bash. Requires `jq`, `find`, `git`. Reads VS Code chat transcripts under `~/.vscode-server/data/User/workspaceStorage/`. | The transcript path is VS Code-specific. For other editors, point the script at the equivalent transcript directory. |
@@ -135,12 +137,12 @@ agentkit/
 - **LLM hosts**: Claude Code can load the same Markdown from
   `~/.claude/agents` and `~/.claude/skills`. Cursor and Continue need
   light frontmatter or configuration adaptation.
-- **OS**: Linux (primary) and macOS for the scripts. The Markdown is
-  OS-agnostic.
+- **OS**: Linux (primary) and macOS for the root scripts. Autoreview also
+  includes a PowerShell harness for Windows. The Markdown is OS-agnostic.
 
 ## Provenance and credit
 
-The PR review and author skills under `skills/` and the corresponding
+The locally authored PR review and author skills under `skills/` and the corresponding
 notes under `memories/` are **abstracted patterns** distilled from the
 public PR-review and commenting history of senior open-source
 maintainers in the Kubernetes / OPA / Azure ecosystems. The raw mining
@@ -151,9 +153,9 @@ abstracted ruleset.
 
 ## Upstream skills
 
-[`CATALOG.md`](CATALOG.md) records the audited `sozercan/skills` commit and the
-decision for each upstream skill. External source is referenced rather than
-vendored so updates remain explicit and reviewable.
+[`CATALOG.md`](CATALOG.md) records both the vendored OpenClaw autoreview
+snapshot and the audited `sozercan/skills` recommendations. Vendored source is
+checksum-locked; referenced source remains external.
 
 ## Talk / walkthrough
 
@@ -175,5 +177,5 @@ scripts/validate.sh
 
 ## License
 
-[Apache-2.0](LICENSE). See [NOTICE](NOTICE) for provenance and
-attribution requirements when redistributing.
+[Apache-2.0](LICENSE), except the vendored OpenClaw autoreview skill, which is
+MIT licensed. See [NOTICE](NOTICE) for provenance and attribution requirements.

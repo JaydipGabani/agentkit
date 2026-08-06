@@ -13,13 +13,14 @@ delegated tasks.
 | `dependabot-round-robin.agent.md` | "manage Dependabot PRs" | Drains four OPA repository queues with bounded retries and explicit merges. |
 | `gatekeeper-policy-author.agent.md` | "write a Gatekeeper policy", "add CEL" | Authors dual-engine policies with generated manifests and test coverage. |
 | `pr-author.agent.md` | "open PR", "draft PR", "write commit message" | Produces upstream-ready branch, commit, and PR artifacts. |
-| `pr-reviewer.agent.md` | "review this", "code review", "is this safe to merge" | Runs parallel review passes and synthesizes evidence-based findings. |
+| `pr-reviewer.agent.md` | "review this", "code review", "is this safe to merge" | Applies full-repository review methodology, invokes autoreview once when appropriate, and verifies the final findings. |
 | `session-log.agent.md` | "log this session", "wrap up" | Appends a compact handoff for the next brief. |
 | `worktree-setup.agent.md` | any non-trivial editing task | Enforces one agent per worktree before edits begin. |
 
 ## How agents reference each other
 
 - `pr-reviewer` references `memories/pr-review-techniques.md`.
+- `pr-reviewer` is the sole review orchestrator; `skills/autoreview` owns external model isolation and structured review execution.
 - `pr-reviewer` (when the diff is in a Kubernetes-org repo) layers in
   `skills/kubernetes-sig-auth-rigor` and `memories/sig-auth-rigor.md`.
 - `pr-author` references `skills/distributed-systems-author-style`.
