@@ -24,7 +24,7 @@ the task matches the skill's scope. Each skill is a directory with a
 - For Kubernetes diffs touching auth/RBAC/feature-gates, layer
   `kubernetes-sig-auth-rigor` on top.
 - `pr-author` agent loads `distributed-systems-author-style` always.
-- `pr-reviewer` invokes `autoreview` immediately after scope/base selection for every non-trivial review-ready diff, completing at most one review per unchanged bundle. Autoreview owns model execution; the agent verifies its advisory findings against full repository context. Completed reviews rerun only after the patch changes; failed invocations may retry after their concrete failure is resolved.
+- `pr-reviewer` invokes `autoreview` immediately after scope/base selection for every non-trivial review-ready diff, completing at most one review per request. Autoreview owns model execution; the agent verifies its advisory findings against full repository context. Completed reviews rerun only after the patch changes. A failed invocation may retry at most once total after its concrete failure is resolved; changing failure class does not reset that budget. See `agents/pr-reviewer.agent.md` for the authoritative orchestration contract.
 
 ## Installing
 

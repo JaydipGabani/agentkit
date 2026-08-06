@@ -12,7 +12,7 @@ This catalog separates content maintained in this repository from skills supplie
 | [`Dependabot Round Robin`](agents/dependabot-round-robin.agent.md) | Drain Dependabot queues across the four OPA repositories. |
 | [`Gatekeeper Policy Author`](agents/gatekeeper-policy-author.agent.md) | Author dual-engine Gatekeeper Library policies. |
 | [`PR Author`](agents/pr-author.agent.md) | Prepare branches, commits, and pull request text. |
-| [`PR Reviewer`](agents/pr-reviewer.agent.md) | Start non-trivial review-ready reviews with one isolated autoreview pass, then apply full-repository methodology and verify the final findings. |
+| [`PR Reviewer`](agents/pr-reviewer.agent.md) | Start non-trivial review-ready diffs with one isolated autoreview pass, then apply full-repository methodology and verify the final findings. |
 | [`Session Log`](agents/session-log.agent.md) | Record a compact handoff for the next session. |
 | [`Worktree Setup`](agents/worktree-setup.agent.md) | Isolate editable work before another agent can collide with it. |
 
