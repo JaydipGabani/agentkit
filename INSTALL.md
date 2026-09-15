@@ -1,7 +1,7 @@
 # INSTALL.md
 
-Step-by-step installation for the four pillars. Skip any pillar you
-don't want.
+Step-by-step installation for the optional toolkit components. Skip any
+component you don't want.
 
 > **Conventions.** Throughout this doc, `$REPO` is the path you cloned
 > this toolkit into. `~/.local/bin` must be on your `PATH` for the
@@ -201,6 +201,51 @@ with a `StartCalendarInterval` block. Run `launchctl load` on it.
 
 ---
 
+## 5. Human-readable VS Code session titles
+
+This optional component names local chat and supported Agents Window sessions
+when a prompt contains an explicit GitHub pull request or Issue link:
+
+```text
+Prompt: Review https://github.com/open-policy-agent/gatekeeper/pull/4816
+Title:  Add per-constraint VAP generation
+```
+
+The title is fetched with `gh` and used as-is. Prompts without a full PR or Issue
+URL are ignored; bare numbers, repository context, and worktree branches are not
+inferred. The extension never edits transcript storage or stores raw prompts.
+
+Prerequisites: VS Code 1.132+, Node.js, `npx`, the `code` CLI, and authenticated
+`gh` access for exact PR and Issue metadata.
+
+```sh
+cd "$REPO"
+scripts/install-session-titles.sh
+```
+
+The installer:
+
+1. Installs `agentkit-session-title-hook` under `~/.local/bin`.
+2. Installs a user-scoped `UserPromptSubmit` hook under `~/.copilot/hooks`.
+3. Packages and installs `jaydipgabani.agentkit-session-titles` on the current
+  local or remote VS Code host.
+
+Reload every VS Code window after installation with **Developer: Reload Window**
+from the Command Palette, or close and reopen it. Remote SSH, WSL, container,
+and Codespaces hosts each need their own installation because hooks and
+workspace extensions execute on that host.
+
+Automatic adapters are validated with VS Code 1.132 for local chat and Copilot
+CLI sessions. Their internal command availability is checked at runtime. Claude
+only exposes an interactive rename command; Cloud and Codex expose no
+programmatic rename command, so those providers keep their generated titles.
+
+Copilot CLI sessions are targeted by resource URI. Stable VS Code cannot target
+the submitting local chat, so avoid switching chats during the short `gh` lookup
+before the title appears.
+
+---
+
 ## Verification checklist
 
 - [ ] `wt list` works inside a git repo.
@@ -212,6 +257,9 @@ with a `StartCalendarInterval` block. Run `launchctl load` on it.
 - [ ] Asking your editor "what was I working on" routes to a
       `daily-brief`-style response.
 - [ ] Asking "review this diff" routes to `pr-reviewer`.
+- [ ] `code --list-extensions --show-versions` lists
+  `jaydipgabani.agentkit-session-titles`.
+- [ ] A chat is renamed after a prompt containing a GitHub PR or Issue link.
 
 ---
 
@@ -242,3 +290,19 @@ with a `StartCalendarInterval` block. Run `launchctl load` on it.
 - The hardening (`ProtectHome=read-only`) only allows writes under
   `~/.local/state/session-logs`. If you want it to write elsewhere,
   add another `ReadWritePaths=` line to the unit and reload.
+
+**A chat keeps its generated title.**
+
+- Reload the VS Code window after installing the extension.
+- Run `Agentkit: Show Session Title Log` from the Command Palette.
+- Confirm `agentkit-session-title-hook` is on `PATH` and
+  `~/.copilot/hooks/agentkit-session-title.json` exists.
+- Confirm the corresponding `gh pr view` or `gh issue view` command succeeds.
+
+**A local chat was renamed after I switched chats.**
+
+- Stable VS Code does not expose the submitting local chat resource. The
+  extension dispatches `/rename` immediately without GitHub lookup, but a switch
+  before the hook reaches the extension can still move focus. Avoid switching
+  local chats until the title appears. Copilot CLI Agent Host sessions are
+  targeted directly and do not have this limitation.

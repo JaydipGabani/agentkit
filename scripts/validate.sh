@@ -116,6 +116,7 @@ fi
 [[ "$(find agents -maxdepth 1 -name '*.agent.md' | wc -l)" -eq "${#expected_agents[@]}" ]] || fail "unexpected agent count"
 
 bash -n \
+  scripts/install-session-titles.sh \
   scripts/session-log-compile.sh \
   scripts/wt \
   skills/autoreview/scripts/test-review-harness \
@@ -123,6 +124,7 @@ bash -n \
   skills/gatekeeper-local-testing/scripts/kind-e2e.sh
 
 command -v jq >/dev/null || fail "jq is required"
+command -v node >/dev/null || fail "node is required"
 command -v python3 >/dev/null || fail "python3 is required"
 jq -e '
   .version == 1 and
@@ -141,6 +143,28 @@ jq -e '
   .skills[0].license == "MIT" and
   .skills[0].localPayloadChanges == []
 ' vendored-skills.json >/dev/null
+
+[[ -x scripts/install-session-titles.sh ]] || fail "session title installer is not executable"
+[[ -x scripts/session-title-hook ]] || fail "session title hook is not executable"
+cmp LICENSE extensions/session-title/LICENSE || fail "session title extension license differs from repository license"
+jq -e '
+  .name == "agentkit-session-titles" and
+  .publisher == "jaydipgabani" and
+  .main == "./extension.js" and
+  (.enabledApiProposals // []) == [] and
+  ([.contributes.commands[].command] | index("agentkit.sessionTitles.showOutput")) != null and
+  .contributes.configuration.properties["agentkit.sessionTitles.enabled"].default == true
+' extensions/session-title/package.json >/dev/null
+jq -e '
+  .hooks.UserPromptSubmit[0].command == "agentkit-session-title-hook" and
+  .hooks.UserPromptSubmit[0].cwd == "." and
+  .hooks.UserPromptSubmit[0].timeout == 20
+' extensions/session-title/hooks.json >/dev/null
+node --check scripts/session-title-hook
+node --test extensions/session-title/*.test.js
+if grep -Fq 'session-title-bridges/*.json' scripts/install-session-titles.sh; then
+  fail "session title installer must preserve live bridge descriptors"
+fi
 
 [[ "$(readlink skills/autoreview/CLAUDE.md)" == "AGENTS.md" ]] || fail "autoreview CLAUDE.md symlink changed"
 verify_sha256_manifest skills/autoreview UPSTREAM.sha256 || fail "autoreview payload differs from upstream"

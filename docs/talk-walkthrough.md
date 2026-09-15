@@ -1,6 +1,6 @@
 # AI Workflow Walkthrough — talk demo notes
 
-A guided tour of the AI tooling in this repo, presented as five
+A guided tour of the AI tooling in this repo, presented as six
 pillars. Each section names the artifact, gives a demo command, and a
 talking point. Open the linked files relative to the repo root as you
 go.
@@ -17,7 +17,7 @@ go.
 
 ## TL;DR
 
-Five interlocking pillars, all custom, all distilled from real engineering practice (not vendor demos):
+Six interlocking pillars, all custom, all grounded in real engineering practice (not vendor demos):
 
 | Pillar | What it solves | Primary artifact |
 |---|---|---|
@@ -26,6 +26,7 @@ Five interlocking pillars, all custom, all distilled from real engineering pract
 | 3. Daily Brief agent | Standup-style snapshot + GitHub triage | `~/.claude/agents/daily-brief.agent.md` |
 | 4. PR review skills | Senior-maintainer-grade code review | `~/.claude/skills/distributed-systems-pr-review/SKILL.md` + `pr-reviewer` agent |
 | 5. PR author skills | Upstream-ready commits, branches, descriptions | `~/.claude/skills/distributed-systems-author-style/SKILL.md` + `pr-author` agent |
+| 6. Session titles | Human-readable identity across chat windows | `extensions/session-title/` + `scripts/session-title-hook` |
 
 Each is read-only by default, citation-driven, and modular — pick any one without the others.
 
@@ -259,6 +260,47 @@ The agent:
 
 ---
 
+## Pillar 6 — Human-readable session titles
+
+**Problem.** Ten chat tabs named from fragments of their opening prompt are not
+meaningful session identity, especially when several sessions concern the same
+PR across local chat and the Agents Window.
+
+**Solution.** A user-scoped `UserPromptSubmit` hook forwards the prompt to a
+small workspace-host extension. When the prompt contains a GitHub PR or Issue
+link, the extension fetches that item's title with `gh` and applies it directly:
+
+```text
+Prompt: Review https://github.com/open-policy-agent/gatekeeper/pull/4816
+Title:  Add per-constraint VAP generation
+```
+
+Prompts without a full PR or Issue link are ignored. Bridge descriptors are
+private and workspace-scoped; focused-window metadata disambiguates duplicate
+workspaces. Hook `cwd` only routes the event to a window.
+
+### Artifacts to open
+
+- [`extensions/session-title/`](../extensions/session-title/) — extension,
+  provider adapters, naming core, and tests.
+- [`scripts/session-title-hook`](../scripts/session-title-hook) — hook bridge
+  client.
+- [`scripts/install-session-titles.sh`](../scripts/install-session-titles.sh) —
+  one-command local/remote host installer.
+
+### Demo
+
+Open a fresh local chat and paste a GitHub PR URL. The title changes to the exact
+PR title. A prompt with only `PR #4816` does nothing. Copilot CLI sessions use the
+same linked-title rule and can be targeted directly.
+
+### Talking point
+
+> "There is no naming heuristic: paste a PR or Issue link and the chat gets that
+> item's title. Otherwise, the extension leaves the title alone."
+
+---
+
 ## How the pieces compose
 
 ```
@@ -272,6 +314,7 @@ Morning:
 
 Mid-day:
   ad-hoc work happens across worktrees, multiple chat sessions
+  → pillar 6 gives each session a semantic, collision-free title
   systemd timer at 17:00 PT compiles today's session log
 
 Reviewing:
@@ -331,9 +374,10 @@ First 200 lines of `/memories/*.md` (top level) are loaded into every conversati
 2. **2 min — pillar 1 (worktrees)**: live `wt new`, show 19 active worktrees.
 3. **3 min — pillar 2+3 (session log → daily brief)**: open today's session log, read one entry, then `daily brief` in fresh chat. The "resume mid-question" moment is the most visceral demo.
 4. **3 min — pillar 4 (review)**: pull a real PR, run `@pr-reviewer`, show structured findings cite the same patterns as the mining corpus.
-5. **3 min — pillar 5 (author)**: stage a small change, run `@pr-author`, show the output side by side with a real maintainer PR.
-6. **2 min — composition**: walk the morning → mid-day → review → author → next-day loop.
-7. **1.5 min — what's distilled vs. what's vendor**: emphasize that the techniques came from mining real engineer behavior (hundreds of reviewer comments and dozens of authored PRs), not from prompt engineering.
+5. **2 min — pillar 5 (author)**: stage a small change, run `@pr-author`, show the output side by side with a real maintainer PR.
+6. **1 min — pillar 6 (titles)**: open two sessions for one PR and show their semantic ordinal titles.
+7. **1.5 min — composition**: walk the morning → mid-day → review → author → next-day loop.
+8. **1 min — what's distilled vs. what's vendor**: emphasize that the techniques came from mining real engineer behavior (hundreds of reviewer comments and dozens of authored PRs), not from prompt engineering.
 
 ---
 
@@ -366,6 +410,8 @@ First 200 lines of `/memories/*.md` (top level) are loaded into every conversati
 | 4 | `~/.claude/agents/pr-reviewer.agent.md` | Review agent |
 | 5 | `~/.claude/skills/distributed-systems-author-style/SKILL.md` | Author skill |
 | 5 | `~/.claude/agents/pr-author.agent.md` | Author agent |
+| 6 | `extensions/session-title/` | Semantic title extension and tests |
+| 6 | `~/.local/bin/agentkit-session-title-hook` | User prompt hook bridge |
 | 4+5 | (mining corpus, kept private) | The corpus the skills came from. Abstracted ruleset is in `memories/pr-review-techniques.md`. |
 | Glue | `/memories/*.md` | Auto-loaded persistent notes |
 | Glue | `gatekeeper/.github/instructions/*.instructions.md` | Repo skill routing |
@@ -376,6 +422,6 @@ First 200 lines of `/memories/*.md` (top level) are loaded into every conversati
 
 1. Audience: peer engineers, leadership, or ML/AI-curious general?
 2. Live demo or recorded? Live is more visceral; recorded protects against gh API hiccups.
-3. Which pillar do you want to deep-dive? (One pillar in 15 min works better than skimming all 5.)
+3. Which pillar do you want to deep-dive? (One pillar in 15 min works better than skimming all 6.)
 4. Do you want to show the mining process itself (the GraphQL → JSON → SKILL.md pipeline)? That's a great "show your work" moment but adds 5 min.
 5. Companion artifact (gist? blog post? GitHub repo with templates)? Useful for follow-ups.

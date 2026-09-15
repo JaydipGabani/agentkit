@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "agentkit-session-title-hook",
+        "cwd": ".",
+        "timeout": 20
+      }
+    ]
+  }
+}

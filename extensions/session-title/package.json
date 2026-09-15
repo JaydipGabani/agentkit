@@ -1,0 +1,46 @@
+{
+  "name": "agentkit-session-titles",
+  "displayName": "Agentkit Session Titles",
+  "description": "Renames VS Code chat and Agent Host sessions from linked GitHub PR or Issue titles.",
+  "version": "0.4.0",
+  "publisher": "jaydipgabani",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JaydipGabani/agentkit.git"
+  },
+  "engines": {
+    "vscode": "^1.132.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "agentkit.sessionTitles.showOutput",
+        "title": "Agentkit: Show Session Title Log"
+      }
+    ],
+    "configuration": {
+      "title": "Agentkit Session Titles",
+      "properties": {
+        "agentkit.sessionTitles.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Rename a chat when its prompt contains a GitHub pull request or Issue link."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --test *.test.js"
+  }
+}
